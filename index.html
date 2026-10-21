@@ -165,6 +165,26 @@ textarea{min-height:70px;resize:vertical}
 .cell.l4{position:relative}
 .cell.l4::after{content:"";position:absolute;right:2px;top:2px;width:7px;height:7px;border-radius:50%;background:var(--sun)}
 @media (max-width:360px){.pup,.poodle{width:84px}.poodle{height:84px}}
+.wrap{zoom:var(--z,1)}
+.toast{zoom:var(--z,1)}
+.seg3{grid-template-columns:repeat(3,1fr)}
+.seg3 button{display:flex;align-items:center;justify-content:center;min-height:44px}
+body{word-break:keep-all;overflow-wrap:anywhere}
+.topbar{display:flex;justify-content:flex-end;margin-bottom:-6px}
+.fsbtn{border:1px solid var(--line);border-radius:99px;background:var(--surface);color:var(--accent);
+  font-weight:600;font-size:13px;padding:6px 12px;cursor:pointer;min-height:34px}
+.fsbtn span{font-family:var(--display);font-size:15px}
+.big .minipup{display:none}
+.big .stats{grid-template-columns:1fr 1fr}
+.big .stats .stat:last-child{grid-column:1/-1}
+.big .hero h1{font-size:21px}
+.big .pup,.big .poodle{width:92px}.big .poodle{height:92px}
+.big .daynav .t span{display:block}
+.row2>*,.dates>*{min-width:0}
+.dates{display:flex;flex-direction:column;gap:12px}
+input[type=date]{-webkit-appearance:none;appearance:none;display:block;width:100%;min-width:0;max-width:100%;min-height:46px;text-align:left;line-height:1.4}
+input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
+input[type=date]::-webkit-calendar-picker-indicator{opacity:.6}
 /* 모모 움직임 */
 .live .m-head{transform-box:view-box;transform-origin:60px 86px;animation:tilt 7s ease-in-out infinite}
 .live .m-earL{transform-box:view-box;transform-origin:34px 50px;animation:earL 7s ease-in-out infinite}
@@ -233,7 +253,7 @@ textarea{min-height:70px;resize:vertical}
 <symbol id="paw" viewBox="0 0 24 24"><g fill="currentColor"><ellipse cx="12" cy="16" rx="5" ry="4"/><circle cx="6" cy="10" r="2.2"/><circle cx="10" cy="6.5" r="2.2"/><circle cx="14" cy="6.5" r="2.2"/><circle cx="18" cy="10" r="2.2"/></g></symbol>
 </defs></svg>
 <div class="wrap">
-  <section class="hero" aria-label="요약">
+    <section class="hero" aria-label="요약">
     <div class="hero-top">
       <div class="hero-txt"><h1>혈당 식단<br>3개월 체크</h1>
         <div class="dday"><small id="testLabel">검사일까지</small><span id="dday">D-0</span></div></div>
@@ -323,10 +343,15 @@ textarea{min-height:70px;resize:vertical}
   <section class="panel" id="p-set" hidden>
     <div class="card">
       <h3>기간</h3>
-      <div class="row2">
+      <div class="dates">
         <div class="field"><label for="startDate">시작일</label><input id="startDate" type="date"></div>
         <div class="field"><label for="testDate">검사일</label><input id="testDate" type="date"></div>
       </div>
+    </div>
+    <div class="card">
+      <h3>글씨 크기</h3>
+      <div class="seg seg3" id="fsSeg"><button data-z="1">보통</button><button data-z="1.18" style="font-size:17px">크게</button><button data-z="1.35" style="font-size:19px">아주 크게</button></div>
+      <p class="hint">앱 전체 글씨와 버튼이 함께 커져요.</p>
     </div>
     <div class="card">
       <h3>식단 추천</h3>
@@ -445,7 +470,7 @@ const diff=(a,b)=>Math.round((parse(b)-parse(a))/864e5);
 const WD=['일','월','화','수','목','금','토'];
 const TODAY=fmt(new Date());
 
-function defaults(){return {start:'2026-10-22',test:'2027-01-22',styles:['k','e','f','m','v'],mode:'daily',days:{}}}
+function defaults(){return {start:'2026-10-22',test:'2027-01-22',styles:['k','e','f','m','v'],mode:'daily',fs:1,days:{}}}
 let S=defaults();
 try{const raw=localStorage.getItem(KEY);if(raw){const p=JSON.parse(raw);if(p&&p.days)S=Object.assign(defaults(),p)}}catch(e){}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('저장할 수 없는 환경이에요. 브라우저에서 열어주세요.')}}
@@ -541,6 +566,9 @@ function renderWeek(){
     h+=`<details${i===0?' open':''}><summary>${dt.getMonth()+1}월 ${dt.getDate()}일 ${WD[dt.getDay()]}요일${k===TODAY?' · 오늘':''}</summary><div class="menu">${mealHTML(planFor(k))}</div></details>`}
   $('week').innerHTML=h;
 }
+function applyFs(){const z=S.fs||1;document.documentElement.style.setProperty('--z',z);
+  document.documentElement.classList.toggle('big',z>1.1);
+  document.querySelectorAll('#fsSeg button').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.z===z));}
 function renderStyleSet(){
   $('styleChips').innerHTML=STYLES.map(([id,l])=>`<button class="chipb" data-s="${id}" aria-pressed="${S.styles.includes(id)}">${l}</button>`).join('');
   document.querySelectorAll('#modeSeg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===S.mode));
@@ -588,6 +616,8 @@ $('pup').onclick=()=>{const p=$('pup'),b=$('bubble');b.textContent=PET[petI++%PE
   p.classList.remove('wiggle');void p.offsetWidth;p.classList.add('wiggle');$('heroPup').classList.add('happy');
   b.classList.add('pop');setTimeout(()=>b.classList.remove('pop'),200);
   clearTimeout(petting);petting=setTimeout(()=>{petting=null;renderHero()},2600)};
+$('fsSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;S.fs=+b.dataset.z;save();applyFs();toast('글씨 크기를 바꿨어요')});
+applyFs();
 renderHero();renderDay();renderWeek();renderStyleSet();
 </script>
 
