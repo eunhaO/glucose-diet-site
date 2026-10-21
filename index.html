@@ -362,7 +362,7 @@ input[type=date]::-webkit-calendar-picker-indicator{opacity:.6}
     </div>
     <div class="card">
       <h3>백업</h3>
-      <p class="hint">기록은 이 폰의 이 브라우저에만 저장돼요. 브라우저 데이터를 지우면 사라지니, 가끔 복사해서 메모앱이나 카톡 나와의 채팅에 붙여두세요.</p>
+      <p class="hint">기록은 이 폰에 자동으로 저장돼요. 폰을 바꿀 때만 "기록 복사하기"로 옮겨주세요.</p>
       <div class="btns"><button class="btn" id="copyBtn">기록 복사하기</button></div>
       <textarea id="backupOut" readonly hidden></textarea>
       <div class="field"><label for="backupIn">복원: 복사해둔 기록 붙여넣기</label><textarea id="backupIn" placeholder="{&quot;start&quot;: ... }"></textarea></div>
@@ -617,6 +617,7 @@ $('pup').onclick=()=>{const p=$('pup'),b=$('bubble');b.textContent=PET[petI++%PE
   b.classList.add('pop');setTimeout(()=>b.classList.remove('pop'),200);
   clearTimeout(petting);petting=setTimeout(()=>{petting=null;renderHero()},2600)};
 $('fsSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;S.fs=+b.dataset.z;save();applyFs();toast('글씨 크기를 바꿨어요')});
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
 applyFs();
 renderHero();renderDay();renderWeek();renderStyleSet();
 </script>
