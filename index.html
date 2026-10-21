@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>혈당 식단 체크</title>
+<meta name="theme-color" content="#2f6b4f">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="혈당식단">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<style>
+/* Layout: 한 손으로 쓰는 모바일 체크앱 — 상단 D-day 카드, 탭 4개, 하루 단위 체크리스트 */
+:root{
+  --bg:#eef3ef; --surface:#ffffff; --ink:#1d2a24; --muted:#64756c; --line:#d6e1da;
+  --accent:#2f6b4f; --accent-soft:#dcebe2; --sun:#e9b949; --warn:#c2553f;
+  --h0:#e3eae5; --h1:#c4dfcf; --h2:#8fc3a5; --h3:#4f9a72; --h4:#2f6b4f;
+  --display:"Gowun Dodum","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121a16; --surface:#1b2520; --ink:#e4ede7; --muted:#93a59b; --line:#2c3a33;
+  --accent:#7cc79c; --accent-soft:#24392d; --sun:#e9c260; --warn:#e98471;
+  --h0:#222d27; --h1:#294535; --h2:#36684b; --h3:#4f9a72; --h4:#7cc79c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121a16; --surface:#1b2520; --ink:#e4ede7; --muted:#93a59b; --line:#2c3a33;
+  --accent:#7cc79c; --accent-soft:#24392d; --sun:#e9c260; --warn:#e98471;
+  --h0:#222d27; --h1:#294535; --h2:#36684b; --h3:#4f9a72; --h4:#7cc79c; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 40px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1,h2,h3{font-family:var(--display);font-weight:400;margin:0;text-wrap:balance}
+button{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.hero{background:var(--accent);color:#fff;border-radius:22px;padding:20px;display:flex;flex-direction:column;gap:14px}
+:root[data-theme="dark"] .hero{color:#0f1a14}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .hero{color:#0f1a14}}
+.hero-top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.hero h1{font-size:26px;line-height:1.2}
+.dday{font-family:var(--display);font-size:40px;line-height:1;font-variant-numeric:tabular-nums}
+.dday small{display:block;font-family:var(--body);font-size:12px;opacity:.85;letter-spacing:.02em;text-align:right;margin-bottom:4px}
+.bar{height:8px;border-radius:99px;background:rgba(255,255,255,.25);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--sun);border-radius:99px;transition:width .4s}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{font-size:12px;opacity:.9}
+.stat b{display:block;font-family:var(--display);font-weight:400;font-size:22px;opacity:1;font-variant-numeric:tabular-nums}
+
+.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px}
+.tabs button{border:0;background:none;padding:10px 4px;border-radius:10px;font-weight:500;color:var(--muted);cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--accent-soft);color:var(--accent)}
+
+.panel{display:flex;flex-direction:column;gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.daynav{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.daynav button{width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-size:18px}
+.daynav .t{text-align:center}
+.daynav .t h2{font-size:22px}
+.daynav .t span{font-size:12px;color:var(--muted)}
+.todaybtn{align-self:center;border:0;background:none;color:var(--accent);font-size:13px;text-decoration:underline;cursor:pointer}
+
+.score{display:flex;align-items:center;gap:12px}
+.ring{--p:0;width:58px;height:58px;border-radius:50%;flex:none;
+  background:conic-gradient(var(--accent) calc(var(--p)*1%),var(--h0) 0);display:grid;place-items:center}
+.ring span{width:44px;height:44px;border-radius:50%;background:var(--surface);display:grid;place-items:center;
+  font-family:var(--display);font-size:16px;font-variant-numeric:tabular-nums}
+.score p{margin:0;font-size:14px;color:var(--muted)}
+.score p b{color:var(--ink);font-weight:600}
+
+.group-label{font-size:12px;color:var(--muted);letter-spacing:.06em;margin:4px 0 -4px}
+.checks{display:flex;flex-direction:column;gap:6px}
+.chk{display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;border:1px solid var(--line);
+  background:var(--surface);cursor:pointer;text-align:left;width:100%;transition:background .15s}
+.chk .box{width:26px;height:26px;border-radius:8px;border:2px solid var(--line);flex:none;display:grid;place-items:center;transition:all .15s}
+.chk .box svg{opacity:0;width:16px;height:16px}
+.chk .txt{min-width:0}
+.chk .txt b{display:block;font-weight:500}
+.chk .txt span{font-size:12px;color:var(--muted)}
+.chk[aria-pressed="true"]{background:var(--accent-soft);border-color:transparent}
+.chk[aria-pressed="true"] .box{background:var(--accent);border-color:var(--accent)}
+.chk[aria-pressed="true"] .box svg{opacity:1}
+
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:13px;color:var(--muted)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+input[type=number],input[type=date],textarea{width:100%;border:1px solid var(--line);background:var(--bg);color:var(--ink);
+  border-radius:12px;padding:10px 12px;font:inherit}
+textarea{min-height:70px;resize:vertical}
+.unit{position:relative}
+.unit em{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-style:normal;font-size:12px;color:var(--muted);pointer-events:none}
+.hint{font-size:12px;color:var(--muted);margin:0}
+.hint.bad{color:var(--warn)}
+
+.menu{display:flex;flex-direction:column;gap:0}
+.meal{display:grid;grid-template-columns:52px 1fr;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.meal:first-child{border-top:0;padding-top:0}
+.meal .k{font-family:var(--display);color:var(--accent);font-size:15px}
+.meal .v{min-width:0}
+
+.months{display:flex;flex-direction:column;gap:18px}
+.month h3{font-size:18px;margin-bottom:8px}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.wd{font-size:11px;color:var(--muted);text-align:center}
+.cell{aspect-ratio:1;max-width:100%;border-radius:8px;border:0;background:var(--h0);font-size:12px;cursor:pointer;
+  display:grid;place-items:center;font-variant-numeric:tabular-nums;color:var(--ink)}
+.cell.l1{background:var(--h1)}.cell.l2{background:var(--h2)}.cell.l3{background:var(--h3);color:#fff}.cell.l4{background:var(--h4);color:#fff}
+:root[data-theme="dark"] .cell.l4{color:#0f1a14}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .cell.l4{color:#0f1a14}}
+.cell.out{background:transparent;color:var(--line);cursor:default}
+.cell.today{outline:2px solid var(--sun);outline-offset:1px}
+.cell.sel{box-shadow:inset 0 0 0 2px var(--ink)}
+.legend{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)}
+.legend i{width:14px;height:14px;border-radius:4px;display:inline-block}
+
+.week{display:flex;flex-direction:column;gap:10px}
+.week details{border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:12px 14px}
+.week summary{cursor:pointer;font-family:var(--display);font-size:17px}
+.week details[open] summary{margin-bottom:6px}
+.rules{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+
+.btn{border:0;border-radius:12px;padding:11px 14px;background:var(--accent);color:var(--surface);font-weight:600;cursor:pointer}
+.btn.ghost{background:var(--accent-soft);color:var(--accent)}
+.btn.danger{background:transparent;color:var(--warn);border:1px solid var(--warn)}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);
+  background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:99px;font-size:13px;z-index:20;transition:opacity .2s}
+.notice{font-size:13px;background:var(--accent-soft);border-radius:12px;padding:10px 12px;margin:0}
+.mhead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.btn.sm{padding:7px 12px;font-size:13px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chipb{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:8px 14px;cursor:pointer;font-weight:500;color:var(--muted)}
+.chipb[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--bg);border-radius:12px;padding:4px}
+.seg button{border:0;background:none;border-radius:9px;padding:9px;cursor:pointer;color:var(--muted);font-weight:500}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.hero{position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;right:-18px;bottom:-22px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.08)}
+.hero>*{position:relative;z-index:1}
+.hero-top{align-items:flex-end;flex-wrap:nowrap}
+.hero-txt{display:flex;flex-direction:column;gap:10px;min-width:0}
+.hero-txt .dday small{text-align:left}
+.pup{position:relative;flex:none;width:104px;display:flex;flex-direction:column;align-items:center;margin-bottom:-6px}
+.poodle{width:104px;height:104px;display:block}
+.pup .poodle{transform-origin:50% 100%}
+.pup.hop .poodle{animation:hop .7s ease 2}
+@keyframes hop{0%,100%{transform:translateY(0)}35%{transform:translateY(-10px) rotate(-4deg)}60%{transform:translateY(0) rotate(3deg)}}
+.happy{--open:0;--closed:1}
+.bubble{background:#fff;color:#1d2a24;font-size:12px;font-weight:600;line-height:1.3;padding:6px 10px;border-radius:12px;
+  margin-bottom:6px;text-align:center;position:relative;white-space:nowrap}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-5px;width:10px;height:10px;background:#fff;transform:translateX(-50%) rotate(45deg);border-radius:2px}
+.minipup{width:46px;height:46px;flex:none;border-radius:50%;background:#dcebe2;overflow:hidden;display:grid;place-items:end center}
+.minipup svg{width:46px;height:46px;transform:translateY(4px)}
+.paws{display:flex;gap:6px;color:var(--h2);justify-content:center}
+.paws svg{width:14px;height:14px}
+.paws svg:nth-child(even){transform:translateY(-4px) rotate(12deg)}
+.paws svg:nth-child(odd){transform:rotate(-12deg)}
+.cell.l4{position:relative}
+.cell.l4::after{content:"";position:absolute;right:2px;top:2px;width:7px;height:7px;border-radius:50%;background:var(--sun)}
+@media (max-width:360px){.pup,.poodle{width:84px}.poodle{height:84px}}
+/* 모모 움직임 */
+.live .m-head{transform-box:view-box;transform-origin:60px 86px;animation:tilt 7s ease-in-out infinite}
+.live .m-earL{transform-box:view-box;transform-origin:34px 50px;animation:earL 7s ease-in-out infinite}
+.live .m-earR{transform-box:view-box;transform-origin:86px 50px;animation:earR 7s ease-in-out infinite}
+.live .m-tuft{transform-box:view-box;transform-origin:60px 40px;animation:boing 3.5s ease-in-out infinite}
+.live .m-body{transform-box:view-box;transform-origin:60px 120px;animation:breathe 3.5s ease-in-out infinite}
+.live .m-eyes{transform-box:view-box;transform-origin:60px 57px;animation:blink 4.6s infinite}
+@keyframes tilt{0%,30%,100%{transform:rotate(0)}38%,52%{transform:rotate(-7deg)}60%,72%{transform:rotate(0)}80%,88%{transform:rotate(5deg)}}
+@keyframes earL{0%,30%,100%{transform:rotate(0)}40%{transform:rotate(8deg)}46%{transform:rotate(2deg)}52%{transform:rotate(6deg)}84%{transform:rotate(-4deg)}}
+@keyframes earR{0%,30%,100%{transform:rotate(0)}40%{transform:rotate(-4deg)}84%{transform:rotate(-8deg)}88%{transform:rotate(-2deg)}92%{transform:rotate(-6deg)}}
+@keyframes boing{0%,100%{transform:scale(1)}50%{transform:scale(1.04,.97)}}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.025,1.015)}}
+@keyframes blink{0%,44%,48%,100%{transform:scaleY(1)}46%{transform:scaleY(.08)}}
+.pup{cursor:pointer;border:0;background:none;padding:0;color:inherit;font:inherit;-webkit-tap-highlight-color:transparent}
+.pup.wiggle .poodle{animation:wig .5s ease 2}
+@keyframes wig{0%,100%{transform:rotate(0)}25%{transform:rotate(-6deg) translateY(-4px)}75%{transform:rotate(6deg) translateY(-4px)}}
+.bubble{white-space:normal;word-break:keep-all;max-width:132px;transition:transform .2s}
+.bubble.pop{transform:scale(1.08)}
+@media (prefers-reduced-motion:reduce){.live *{animation:none!important}.pup .poodle{animation:none!important}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="poodle" viewBox="0 0 120 120">
+  <g class="m-body">
+    <g fill="#1d1c21"><ellipse cx="60" cy="112" rx="34" ry="22"/><rect x="38" y="70" width="44" height="36" rx="10"/></g>
+    <g fill="#6c6a72"><circle cx="40" cy="104" r="1.5"/><circle cx="82" cy="106" r="1.5"/><circle cx="74" cy="98" r="1.2"/></g>
+    <path d="M53 93q7-4 14 0q3 8-7 16q-10-8-7-16z" fill="#e6e2dc"/>
+    <g fill="#dedad4"><rect x="34" y="99" width="16" height="22" rx="8"/><rect x="70" y="99" width="16" height="22" rx="8"/></g>
+    <g fill="#9a978f"><circle cx="38" cy="104" r="1.6"/><circle cx="45" cy="108" r="1.3"/><circle cx="76" cy="105" r="1.6"/><circle cx="82" cy="110" r="1.3"/></g>
+    <path d="M38 115v6M42 115v6M46 115v6M74 115v6M78 115v6M82 115v6" stroke="#b5b1aa" stroke-width="1.2"/>
+  </g>
+  <g class="m-head">
+    <g class="m-earL"><g fill="#1d1c21"><circle cx="31" cy="58" r="12"/><circle cx="28" cy="71" r="12"/><circle cx="31" cy="84" r="10"/></g>
+      <circle cx="27" cy="66" r="2.5" fill="#3a3940"/><circle cx="30" cy="80" r="2" fill="#3a3940"/><circle cx="34" cy="74" r="1.4" fill="#6c6a72"/></g>
+    <g class="m-earR"><g fill="#1d1c21"><circle cx="89" cy="58" r="12"/><circle cx="92" cy="71" r="12"/><circle cx="89" cy="84" r="10"/></g>
+      <circle cx="93" cy="66" r="2.5" fill="#3a3940"/><circle cx="90" cy="80" r="2" fill="#3a3940"/><circle cx="88" cy="76" r="1.4" fill="#6c6a72"/></g>
+    <g fill="#1d1c21"><circle cx="60" cy="58" r="26"/>
+      <g class="m-tuft"><circle cx="60" cy="28" r="13"/><circle cx="46" cy="33" r="11"/><circle cx="74" cy="33" r="11"/>
+      <circle cx="50" cy="21" r="8"/><circle cx="69" cy="20" r="9"/><circle cx="80" cy="25" r="6"/><circle cx="40" cy="26" r="6"/>
+      <g fill="#3a3940"><circle cx="54" cy="20" r="3"/><circle cx="70" cy="17" r="2.5"/><circle cx="45" cy="30" r="2.5"/><circle cx="78" cy="30" r="2.2"/></g>
+      <circle cx="62" cy="24" r="1.2" fill="#6c6a72"/></g></g>
+    <ellipse cx="60" cy="71" rx="15.5" ry="11.5" fill="#8a6a52"/>
+    <ellipse cx="60" cy="74" rx="11" ry="7.5" fill="#a5876c"/>
+    <g fill="#5e5a56"><circle cx="50" cy="72" r="1.2"/><circle cx="70" cy="72" r="1.2"/><circle cx="54" cy="78" r="1"/><circle cx="66" cy="78" r="1"/></g>
+    <ellipse cx="48" cy="48" rx="4.5" ry="2.6" fill="#8a6a52" transform="rotate(-12 48 48)"/>
+    <ellipse cx="72" cy="48" rx="4.5" ry="2.6" fill="#8a6a52" transform="rotate(12 72 48)"/>
+    <g style="opacity:var(--open,1)"><g class="m-eyes">
+      <circle cx="49" cy="57" r="5.6" fill="#f2ece4"/><circle cx="71" cy="57" r="5.6" fill="#f2ece4"/>
+      <circle cx="49.4" cy="57.4" r="4.6" fill="#3a2418"/><circle cx="71.4" cy="57.4" r="4.6" fill="#3a2418"/>
+      <circle cx="49.4" cy="57.8" r="2.6" fill="#120b07"/><circle cx="71.4" cy="57.8" r="2.6" fill="#120b07"/>
+      <circle cx="51" cy="55.6" r="1.5" fill="#fff"/><circle cx="73" cy="55.6" r="1.5" fill="#fff"/>
+    </g></g>
+    <g style="opacity:var(--closed,0)" fill="none" stroke="#e8ded2" stroke-width="2.6" stroke-linecap="round">
+      <path d="M44 59q5-6 10 0"/><path d="M66 59q5-6 10 0"/>
+    </g>
+    <ellipse cx="60" cy="67" rx="5.6" ry="4" fill="#141317"/><ellipse cx="58.3" cy="65.8" rx="1.6" ry=".9" fill="#4a4850"/>
+    <path d="M60 71v3M55 76q2.5 2.5 5-1q2.5 3.5 5 1" fill="none" stroke="#3b2b20" stroke-width="1.5" stroke-linecap="round"/>
+    <ellipse class="m-tongue" cx="60" cy="80" rx="2.8" ry="3.2" fill="#ee8a9c" style="opacity:var(--closed,0)"/>
+  </g>
+  <g class="m-collar"><path d="M40 84q20 12 40 0" fill="none" stroke="#3f6fb0" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="60" cy="92" r="3.6" fill="#e9b949"/><circle cx="60" cy="92" r="1.3" fill="#c99a2c"/></g>
+</symbol>
+<symbol id="paw" viewBox="0 0 24 24"><g fill="currentColor"><ellipse cx="12" cy="16" rx="5" ry="4"/><circle cx="6" cy="10" r="2.2"/><circle cx="10" cy="6.5" r="2.2"/><circle cx="14" cy="6.5" r="2.2"/><circle cx="18" cy="10" r="2.2"/></g></symbol>
+</defs></svg>
+<div class="wrap">
+  <section class="hero" aria-label="요약">
+    <div class="hero-top">
+      <div class="hero-txt"><h1>혈당 식단<br>3개월 체크</h1>
+        <div class="dday"><small id="testLabel">검사일까지</small><span id="dday">D-0</span></div></div>
+      <button class="pup" id="pup" aria-label="모모 쓰다듬기"><span class="bubble" id="bubble">모모랑 같이 해요!</span>
+        <svg class="poodle live" id="heroPup" viewBox="0 0 120 120" aria-hidden="true"></svg></button>
+    </div>
+    <div class="bar" aria-hidden="true"><i id="progressBar" style="width:0%"></i></div>
+    <div class="stats">
+      <div class="stat"><b id="sAvg">0%</b>평균 달성률</div>
+      <div class="stat"><b id="sStreak">0일</b>연속 70%+</div>
+      <div class="stat"><b id="sGlu">–</b>최근 7일 공복혈당</div>
+    </div>
+  </section>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="today" aria-selected="true">오늘</button>
+    <button role="tab" data-tab="cal" aria-selected="false">달력</button>
+    <button role="tab" data-tab="menu" aria-selected="false">식단표</button>
+    <button role="tab" data-tab="set" aria-selected="false">설정</button>
+  </nav>
+
+  <!-- 오늘 -->
+  <section class="panel" id="p-today">
+    <div class="card">
+      <div class="daynav">
+        <button id="prevDay" aria-label="이전 날">‹</button>
+        <div class="t"><h2 id="dayTitle">10월 21일</h2><span id="daySub">수요일 · 21일째</span></div>
+        <button id="nextDay" aria-label="다음 날">›</button>
+      </div>
+      <button class="todaybtn" id="goToday" hidden>오늘로 돌아가기</button>
+      <div class="score">
+        <div class="ring" id="ring" style="--p:0"><span id="ringTxt">0</span></div>
+        <span class="minipup"><svg id="miniPup" viewBox="0 0 120 120" aria-hidden="true"><use href="#poodle"/></svg></span>
+        <p id="scoreMsg">체크할수록 달력 칸이 진해져요.</p>
+      </div>
+    </div>
+
+    <div class="checks" id="checks"></div>
+
+    <div class="card">
+      <h3>혈당·메모 <span class="hint" style="display:inline">(선택)</span></h3>
+      <div class="row2">
+        <div class="field"><label for="gFast">공복 혈당</label>
+          <div class="unit"><input id="gFast" type="number" inputmode="numeric" min="30" max="600" placeholder="예: 118"><em>mg/dL</em></div></div>
+        <div class="field"><label for="gPost">식후 2시간</label>
+          <div class="unit"><input id="gPost" type="number" inputmode="numeric" min="30" max="600" placeholder="예: 160"><em>mg/dL</em></div></div>
+      </div>
+      <p class="hint" id="gHint">측정기를 쓰신다면 적어두세요. 검사 전 추세를 보기 좋아요.</p>
+      <div class="field"><label for="memo">메모</label>
+        <textarea id="memo" placeholder="먹은 것, 컨디션, 걸은 시간 등"></textarea></div>
+    </div>
+
+    <div class="card">
+      <div class="mhead"><h3>이날의 추천 식단</h3><button class="btn ghost sm" id="shuffle">다른 메뉴</button></div>
+      <div class="menu" id="todayMenu"></div>
+    </div>
+  </section>
+
+  <!-- 달력 -->
+  <section class="panel" id="p-cal" hidden>
+    <div class="card">
+      <div class="legend">적음 <i style="background:var(--h0)"></i><i style="background:var(--h1)"></i><i style="background:var(--h2)"></i><i style="background:var(--h3)"></i><i style="background:var(--h4)"></i> 많음</div>
+      <div class="months" id="months"></div>
+      <p class="hint">날짜를 누르면 그날 기록으로 이동해요. 노란 점은 85% 이상 지킨 날이에요.</p>
+      <div class="paws" aria-hidden="true"><svg><use href="#paw"/></svg><svg><use href="#paw"/></svg><svg><use href="#paw"/></svg><svg><use href="#paw"/></svg><svg><use href="#paw"/></svg></div>
+    </div>
+  </section>
+
+  <!-- 식단표 -->
+  <section class="panel" id="p-menu" hidden>
+    <div class="card">
+      <h3>기본 원칙</h3>
+      <ul class="rules">
+        <li>흰쌀밥 대신 잡곡·현미밥, 평소의 2/3공기</li>
+        <li>채소 → 단백질 → 밥 순서로 먹기</li>
+        <li>매 끼니 단백질(계란·두부·생선·고기) 한 가지</li>
+        <li>식후 10~15분 걷기</li>
+        <li>믹스커피·주스·탄산, 라면·떡·빵 줄이기</li>
+      </ul>
+    </div>
+    <p class="hint" id="weekHint"></p>
+    <div class="week" id="week"></div>
+    <p class="notice">혈당약이나 인슐린을 쓰고 있다면 밥을 갑자기 많이 줄이지 마세요. 어지럽거나 식은땀이 나면 사탕·주스로 바로 보충하고 의사와 상의하세요.</p>
+  </section>
+
+  <!-- 설정 -->
+  <section class="panel" id="p-set" hidden>
+    <div class="card">
+      <h3>기간</h3>
+      <div class="row2">
+        <div class="field"><label for="startDate">시작일</label><input id="startDate" type="date"></div>
+        <div class="field"><label for="testDate">검사일</label><input id="testDate" type="date"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>식단 추천</h3>
+      <p class="hint">좋아하시는 스타일을 고르면 그 안에서 식단을 골라드려요. 여러 개 고를수록 다양해져요.</p>
+      <div class="chips" id="styleChips"></div>
+      <div class="field"><label>식단이 바뀌는 방식</label>
+        <div class="seg" id="modeSeg"><button data-m="daily">매일 다르게</button><button data-m="weekly">요일별 고정</button></div></div>
+    </div>
+    <div class="card">
+      <h3>백업</h3>
+      <p class="hint">기록은 이 폰의 이 브라우저에만 저장돼요. 브라우저 데이터를 지우면 사라지니, 가끔 복사해서 메모앱이나 카톡 나와의 채팅에 붙여두세요.</p>
+      <div class="btns"><button class="btn" id="copyBtn">기록 복사하기</button></div>
+      <textarea id="backupOut" readonly hidden></textarea>
+      <div class="field"><label for="backupIn">복원: 복사해둔 기록 붙여넣기</label><textarea id="backupIn" placeholder="{&quot;start&quot;: ... }"></textarea></div>
+      <div class="btns"><button class="btn ghost" id="restoreBtn">복원하기</button></div>
+      <p class="hint" id="restoreMsg"></p>
+    </div>
+    <div class="card">
+      <h3>초기화</h3>
+      <div class="btns"><button class="btn danger" id="resetBtn">모든 기록 지우기</button>
+        <button class="btn danger" id="resetConfirm" hidden>정말 지우기</button></div>
+    </div>
+    <div class="card">
+      <h3>홈 화면에 추가</h3>
+      <ul class="rules">
+        <li><b>아이폰</b>: 사파리에서 이 페이지 열기 → 공유 버튼 → 홈 화면에 추가</li>
+        <li><b>안드로이드</b>: 크롬에서 열기 → 메뉴(⋮) → 홈 화면에 추가</li>
+        <li>추가한 뒤에는 꼭 홈 화면 아이콘으로만 열어 체크하세요. 브라우저와 홈 화면 앱의 저장 공간이 따로일 수 있어요.</li>
+      </ul>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const KEY='bsdiet.v1';
+const CHECKS=[
+  {g:'식사',items:[
+    {id:'b',t:'아침 챙겨 먹기',s:'잡곡밥 반공기 또는 계란·두유'},
+    {id:'l',t:'점심 균형 있게',s:'밥 2/3공기 + 단백질 + 채소'},
+    {id:'d',t:'저녁 가볍게',s:'밥 반공기, 저녁 8시 전'},
+  ]},
+  {g:'먹는 방법',items:[
+    {id:'veg',t:'채소부터 먹기',s:'채소 → 단백질 → 밥 순서'},
+    {id:'rice',t:'흰쌀밥 대신 잡곡밥',s:'하루 종일 지켰다면 체크'},
+  ]},
+  {g:'피한 것',items:[
+    {id:'drink',t:'단 음료 안 마심',s:'믹스커피·주스·탄산음료'},
+    {id:'carb',t:'라면·떡·빵 안 먹음',s:'정제 탄수화물 간식 포함'},
+    {id:'night',t:'야식 안 먹음',s:'저녁 식사 후 금식'},
+  ]},
+  {g:'움직임',items:[
+    {id:'walk',t:'식후 걷기',s:'한 끼 이상 10~15분'},
+    {id:'water',t:'물 충분히',s:'하루 6~8잔'},
+  ]},
+];
+const ALL=CHECKS.flatMap(g=>g.items.map(i=>i.id));
+const M=(t,g)=>({t,g:g.split('')});
+const STYLES=[['k','기본 한식'],['e','간편식'],['f','생선·해산물'],['m','고기'],['v','채식 위주']];
+const BF=[
+  M('잡곡밥 반공기 + 계란프라이 + 김 + 김치','kev'),
+  M('삶은 계란 2개 + 무가당 두유 + 방울토마토','ev'),
+  M('두부부침 + 콩나물무침 + 잡곡밥 반공기','kv'),
+  M('잡곡밥 반공기 + 소고기 뭇국 + 김치','km'),
+  M('무가당 그릭요거트 + 견과류 + 삶은 계란','ev'),
+  M('잡곡밥 반공기 + 멸치볶음 + 계란말이','kf'),
+  M('통밀빵 1쪽 + 스크램블에그 + 양배추 샐러드','ev'),
+  M('잡곡밥 반공기 + 계란찜 + 김치','kv'),
+  M('고구마 작은 것 1개 + 삶은 계란 + 우유 1잔','ev'),
+  M('잡곡밥 반공기 + 북엇국(계란 풀어서) + 김치','kf'),
+  M('오트밀(우유·두유에 불려서) + 견과류 + 계란 1개','ev'),
+  M('잡곡밥 반공기 + 고등어구이 + 나물','kf'),
+  M('두부 반 모 데침 + 양념장 + 김 + 잡곡밥 반공기','kv'),
+  M('닭가슴살 샐러드 + 삶은 계란','em'),
+];
+const LU=[
+  M('된장찌개(두부·애호박·버섯) + 시금치나물 + 잡곡밥 2/3','kv'),
+  M('콩나물비빔밥(계란 1개, 밥 적게, 고추장 조금)','kev'),
+  M('제육볶음(기름 적게, 채소 듬뿍) + 쌈채소 + 잡곡밥 반공기','km'),
+  M('고등어구이(통조림 가능) + 양배추쌈 + 잡곡밥 2/3','kf'),
+  M('순두부찌개 + 김 + 잡곡밥 2/3','kev'),
+  M('닭가슴살 채소볶음밥(밥 반공기, 채소 2배)','em'),
+  M('참치(기름 뺀 것) 양배추쌈 + 미역국 + 잡곡밥 2/3','ef'),
+  M('두부 김치찌개(국물 적게) + 나물 + 잡곡밥 2/3','kv'),
+  M('소고기 미역국 + 계란말이 + 잡곡밥 2/3','km'),
+  M('오징어볶음(덜 달게) + 양배추 + 잡곡밥 2/3','kf'),
+  M('잡곡 비빔밥(나물 듬뿍, 계란) + 된장국','kv'),
+  M('외식이면: 샤브샤브(채소·고기 위주, 칼국수·죽은 생략)','m'),
+  M('외식이면: 생선구이 정식, 밥은 2/3만','f'),
+  M('메밀국수 적게 + 삶은 계란 + 오이무침','ev'),
+  M('외식이면: 쌈밥 정식, 밥은 반만','km'),
+];
+const DI=[
+  M('돼지 앞다리살 양배추볶음 + 밥 반공기','km'),
+  M('두부부침 + 미역국 + 잡곡밥 반공기','kv'),
+  M('연어나 고등어 구이 + 데친 브로콜리 + 밥 반공기','ef'),
+  M('채소 오믈렛(계란 3개·양파·버섯) + 오이','ev'),
+  M('닭가슴살 버섯볶음 + 양배추 샐러드 + 밥 반공기','em'),
+  M('된장찌개 + 두부 + 나물 + 밥 반공기','kv'),
+  M('동태탕(국물 적게) + 나물 + 밥 반공기','kf'),
+  M('수육 또는 삶은 닭 + 쌈채소 + 밥 반공기','km'),
+  M('두부 버섯전골(국물 적게) + 밥 반공기','kv'),
+  M('조기나 갈치 구이 + 콩나물국 + 밥 반공기','kf'),
+  M('소고기 채소볶음(덜 달게) + 상추 + 밥 반공기','km'),
+  M('가지·애호박 구이 + 계란찜 + 밥 반공기','kv'),
+  M('닭가슴살·두부 샐러드 + 삶은 계란 (밥 생략 가능)','em'),
+  M('청국장 + 두부 + 김치 + 밥 반공기','kv'),
+];
+const SN=['삶은 계란 1개','견과류 한 줌','무가당 플레인 요거트','사과 반쪽','오이·파프리카 스틱','방울토마토 10알','우유 1잔','슬라이스 치즈 1장','무가당 두유 1팩'].map(t=>M(t,'kefmv'));
+
+const pad=n=>String(n).padStart(2,'0');
+const fmt=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const parse=s=>{const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
+const addDays=(s,n)=>{const d=parse(s);d.setDate(d.getDate()+n);return fmt(d)};
+const diff=(a,b)=>Math.round((parse(b)-parse(a))/864e5);
+const WD=['일','월','화','수','목','금','토'];
+const TODAY=fmt(new Date());
+
+function defaults(){return {start:'2026-10-22',test:'2027-01-22',styles:['k','e','f','m','v'],mode:'daily',days:{}}}
+let S=defaults();
+try{const raw=localStorage.getItem(KEY);if(raw){const p=JSON.parse(raw);if(p&&p.days)S=Object.assign(defaults(),p)}}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('저장할 수 없는 환경이에요. 브라우저에서 열어주세요.')}}
+const day=k=>S.days[k]||{c:[],f:'',p:'',m:''};
+const ratio=k=>{const d=S.days[k];return d?d.c.filter(x=>ALL.includes(x)).length/ALL.length:0};
+const level=r=>r===0?0:r<.3?1:r<.6?2:r<.85?3:4;
+
+let cur=TODAY;
+const $=id=>document.getElementById(id);
+const CHK_SVG='<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5" stroke="var(--surface)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+function renderChecks(){
+  const d=day(cur);
+  $('checks').innerHTML=CHECKS.map(g=>`<p class="group-label">${g.g}</p>`+g.items.map(i=>
+    `<button class="chk" data-id="${i.id}" aria-pressed="${d.c.includes(i.id)}"><span class="box">${CHK_SVG}</span><span class="txt"><b>${i.t}</b><span>${i.s}</span></span></button>`).join('')).join('');
+}
+function renderDay(){
+  const dt=parse(cur);
+  $('dayTitle').textContent=`${dt.getMonth()+1}월 ${dt.getDate()}일`;
+  const n=diff(S.start,cur)+1;
+  $('daySub').textContent=`${WD[dt.getDay()]}요일`+(n>=1?` · ${n}일째`:` · 시작 ${n===0?'내일':'D-'+(1-n)}`)+(cur===TODAY?' · 오늘':'');
+  $('goToday').hidden=cur===TODAY;
+  $('nextDay').disabled=cur>=TODAY;$('nextDay').style.opacity=cur>=TODAY?.35:1;
+  renderChecks();
+  const d=day(cur);$('gFast').value=d.f||'';$('gPost').value=d.p||'';$('memo').value=d.m||'';
+  glucoseHint();renderScore();
+  $('todayMenu').innerHTML=mealHTML(planFor(cur));
+}
+function mealHTML(w){return [['아침',w.b],['점심',w.l],['저녁',w.d],['간식',w.s]].map(([k,v])=>`<div class="meal"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('')}
+function renderScore(){
+  const r=ratio(cur),c=Math.round(r*ALL.length);
+  $('miniPup').classList.toggle('happy',r>=.7);
+  $('ring').style.setProperty('--p',Math.round(r*100));$('ringTxt').textContent=c+'/'+ALL.length;
+  $('scoreMsg').innerHTML=c===0?'체크할수록 달력 칸이 진해져요.':c===ALL.length?'<b>완벽한 하루!</b> 이대로만 가면 돼요.':r>=.7?`<b>잘하고 있어요.</b> ${ALL.length-c}개만 더.`:`<b>${c}개 완료.</b> 하나씩 늘려가요.`;
+}
+function glucoseHint(){
+  const f=+$('gFast').value,p=+$('gPost').value,h=$('gHint');
+  let msg='측정기를 쓰신다면 적어두세요. 검사 전 추세를 보기 좋아요.',bad=false;
+  if(f&&f<70||p&&p<70){msg='70 미만은 저혈당 범위예요. 당분을 보충하고 증상이 있으면 병원에 연락하세요.';bad=true}
+  else if(f||p){const parts=[];if(f)parts.push(f<100?'공복 정상 범위':f<126?'공복 당뇨 전단계 범위':'공복 높음');
+    if(p)parts.push(p<140?'식후 정상 범위':p<200?'식후 다소 높음':'식후 높음');msg=parts.join(' · ')+' (참고용)';}
+  h.textContent=msg;h.classList.toggle('bad',bad);
+}
+function setField(k,v){const d=Object.assign(day(cur),{[k]:v});S.days[cur]=d;save();renderHero()}
+
+let lastToday=-1,petting=null;
+const moodLine=tr=>TODAY<S.start?'모모랑 내일부터 시작해요!':tr===0?'모모랑 같이 해요!':tr<.6?'모모도 응원해요 멍!':tr<1?'잘하고 있어요 멍!':'완벽해요! 모모 신났어요';
+const PET=['엄마 화이팅 멍!','쓰담쓰담 좋아요','오늘도 산책 가요!','물 한 잔 드세요 멍','간식은 오이 주세요','모모가 지켜볼게요'];
+let petI=0;
+function renderHero(){
+  const tr=ratio(TODAY),b=$('bubble');
+  if(!petting)b.textContent=moodLine(tr);
+  $('heroPup').classList.toggle('happy',tr>=.7);
+  if(lastToday>=0&&tr===1&&lastToday<1){const p=$('pup');p.classList.remove('hop');void p.offsetWidth;p.classList.add('hop')}
+  lastToday=tr;
+  const left=diff(TODAY,S.test);
+  $('dday').textContent=left>0?'D-'+left:left===0?'D-day':'D+'+(-left);
+  const total=Math.max(1,diff(S.start,S.test)),done=Math.min(total,Math.max(0,diff(S.start,TODAY)+1));
+  $('progressBar').style.width=Math.round(done/total*100)+'%';
+  const ks=[];for(let k=S.start;k<=TODAY&&k<=S.test;k=addDays(k,1))ks.push(k);
+  const rec=ks.filter(k=>S.days[k]&&S.days[k].c.length);
+  $('sAvg').textContent=(ks.length?Math.round(ks.reduce((a,k)=>a+ratio(k),0)/ks.length*100):0)+'%';
+  let st=0,k=TODAY;if(ratio(k)<.7)k=addDays(k,-1);
+  while(k>=S.start&&ratio(k)>=.7){st++;k=addDays(k,-1)}
+  $('sStreak').textContent=st+'일';
+  const g=[];for(let i=0;i<7;i++){const v=+(S.days[addDays(TODAY,-i)]||{}).f;if(v)g.push(v)}
+  $('sGlu').textContent=g.length?Math.round(g.reduce((a,b)=>a+b,0)/g.length):'–';
+}
+function renderCal(){
+  const s=parse(S.start),e=parse(S.test);let out='';
+  for(let y=s.getFullYear(),m=s.getMonth();y<e.getFullYear()||(y===e.getFullYear()&&m<=e.getMonth());m===11?(y++,m=0):m++){
+    const first=new Date(y,m,1),dim=new Date(y,m+1,0).getDate();
+    let cells=WD.map(w=>`<span class="wd">${w}</span>`).join('');
+    for(let i=0;i<first.getDay();i++)cells+='<span></span>';
+    for(let d=1;d<=dim;d++){const k=fmt(new Date(y,m,d));
+      const out_=k<S.start||k>S.test||k>TODAY;
+      cells+=out_?`<span class="cell out">${d}</span>`:`<button class="cell l${level(ratio(k))}${k===TODAY?' today':''}${k===cur?' sel':''}" data-k="${k}" aria-label="${m+1}월 ${d}일 ${Math.round(ratio(k)*100)}%">${d}</button>`}
+    out+=`<div class="month"><h3>${y}년 ${m+1}월</h3><div class="grid">${cells}</div></div>`;
+  }
+  $('months').innerHTML=out;
+}
+function planFor(k){
+  const dt=parse(k),o=(S.days[k]||{}).o||0;
+  const n=S.mode==='weekly'?(dt.getDay()+6)%7:diff(S.start,k);
+  const pick=(pool,salt)=>{const f=pool.filter(i=>i.g.some(t=>S.styles.includes(t)));const L=f.length?f:pool;
+    return L[(((n+o*3+salt)%L.length)+L.length)%L.length].t};
+  return {b:pick(BF,0),l:pick(LU,5),d:pick(DI,9),s:pick(SN,2)};
+}
+function renderWeek(){
+  const base=TODAY<S.start?S.start:TODAY;
+  $('weekHint').textContent=S.mode==='weekly'?'요일마다 같은 식단이 반복돼요. 설정에서 "매일 다르게"로 바꿀 수 있어요.':'오늘부터 7일 식단이에요. 스타일은 설정 탭에서 고를 수 있어요.';
+  let h='';for(let i=0;i<7;i++){const k=addDays(base,i),dt=parse(k);
+    h+=`<details${i===0?' open':''}><summary>${dt.getMonth()+1}월 ${dt.getDate()}일 ${WD[dt.getDay()]}요일${k===TODAY?' · 오늘':''}</summary><div class="menu">${mealHTML(planFor(k))}</div></details>`}
+  $('week').innerHTML=h;
+}
+function renderStyleSet(){
+  $('styleChips').innerHTML=STYLES.map(([id,l])=>`<button class="chipb" data-s="${id}" aria-pressed="${S.styles.includes(id)}">${l}</button>`).join('');
+  document.querySelectorAll('#modeSeg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===S.mode));
+}
+function showTab(t){
+  document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t));
+  ['today','cal','menu','set'].forEach(p=>$('p-'+p).hidden=p!==t);
+  if(t==='cal')renderCal();
+  if(t==='menu')renderWeek();
+  if(t==='set')renderStyleSet();
+  if(t==='set'){$('startDate').value=S.start;$('testDate').value=S.test}
+}
+let tt;function toast(m){const e=$('toast');e.textContent=m;e.hidden=false;clearTimeout(tt);tt=setTimeout(()=>e.hidden=true,2200)}
+
+document.querySelector('.tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(b)showTab(b.dataset.tab)});
+$('checks').addEventListener('click',e=>{const b=e.target.closest('.chk');if(!b)return;
+  const d=day(cur),id=b.dataset.id;d.c=d.c.includes(id)?d.c.filter(x=>x!==id):[...d.c,id];S.days[cur]=d;save();
+  b.setAttribute('aria-pressed',d.c.includes(id));renderScore();renderHero()});
+$('prevDay').onclick=()=>{cur=addDays(cur,-1);renderDay()};
+$('nextDay').onclick=()=>{if(cur<TODAY){cur=addDays(cur,1);renderDay()}};
+$('goToday').onclick=()=>{cur=TODAY;renderDay()};
+$('gFast').oninput=e=>{setField('f',e.target.value);glucoseHint()};
+$('gPost').oninput=e=>{setField('p',e.target.value);glucoseHint()};
+$('memo').oninput=e=>setField('m',e.target.value);
+$('months').addEventListener('click',e=>{const b=e.target.closest('button.cell');if(!b)return;cur=b.dataset.k;renderDay();showTab('today');window.scrollTo({top:0})});
+$('startDate').onchange=e=>{if(e.target.value&&e.target.value<S.test){S.start=e.target.value;save();renderHero();renderDay();toast('시작일을 바꿨어요')}};
+$('testDate').onchange=e=>{if(e.target.value&&e.target.value>S.start){S.test=e.target.value;save();renderHero();toast('검사일을 바꿨어요')}};
+$('copyBtn').onclick=()=>{const txt=JSON.stringify(S),o=$('backupOut');o.value=txt;
+  const fb=()=>{o.hidden=false;o.select();toast('아래 글자를 길게 눌러 복사하세요')};
+  try{navigator.clipboard.writeText(txt).then(()=>toast('복사했어요. 메모앱에 붙여두세요'),fb)}catch(e){fb()}};
+$('restoreBtn').onclick=()=>{const m=$('restoreMsg');
+  try{const p=JSON.parse($('backupIn').value.trim());if(!p.days||!p.start)throw 0;S=Object.assign(defaults(),p);save();
+    renderHero();renderDay();m.textContent='복원했어요. 기록 '+Object.keys(S.days).length+'일치.';m.classList.remove('bad')}
+  catch(e){m.textContent='형식이 맞지 않아요. "기록 복사하기"로 복사한 글자 전체를 붙여넣어 주세요.';m.classList.add('bad')}};
+$('resetBtn').onclick=()=>{$('resetConfirm').hidden=false;$('resetBtn').hidden=true};
+$('resetConfirm').onclick=()=>{S=defaults();save();$('resetConfirm').hidden=true;$('resetBtn').hidden=false;cur=TODAY;renderHero();renderDay();toast('모든 기록을 지웠어요')};
+
+$('shuffle').onclick=()=>{const d=day(cur);d.o=(d.o||0)+1;S.days[cur]=d;save();$('todayMenu').innerHTML=mealHTML(planFor(cur))};
+$('styleChips').addEventListener('click',e=>{const b=e.target.closest('.chipb');if(!b)return;const id=b.dataset.s;
+  if(S.styles.includes(id)){if(S.styles.length===1){toast('하나 이상은 골라주세요');return}S.styles=S.styles.filter(x=>x!==id)}else S.styles=[...S.styles,id];
+  save();renderStyleSet();renderDay();toast('식단 추천을 바꿨어요')});
+$('modeSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;S.mode=b.dataset.m;save();renderStyleSet();renderDay();toast(S.mode==='daily'?'매일 다른 식단으로 바꿨어요':'요일별 고정 식단으로 바꿨어요')});
+$('heroPup').innerHTML=$('poodle').innerHTML;
+$('pup').onclick=()=>{const p=$('pup'),b=$('bubble');b.textContent=PET[petI++%PET.length];
+  p.classList.remove('wiggle');void p.offsetWidth;p.classList.add('wiggle');$('heroPup').classList.add('happy');
+  b.classList.add('pop');setTimeout(()=>b.classList.remove('pop'),200);
+  clearTimeout(petting);petting=setTimeout(()=>{petting=null;renderHero()},2600)};
+renderHero();renderDay();renderWeek();renderStyleSet();
+</script>
+
+</body>
+</html>
