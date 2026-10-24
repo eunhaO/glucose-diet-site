@@ -257,7 +257,7 @@ input[type=date]::-webkit-calendar-picker-indicator{opacity:.6}
     <div class="hero-top">
       <div class="hero-txt"><h1>혈당 식단<br>3개월 체크</h1>
         <div class="dday"><small id="testLabel">검사일까지</small><span id="dday">D-0</span></div></div>
-      <button class="pup" id="pup" aria-label="모모 쓰다듬기"><span class="bubble" id="bubble">모모랑 같이 해요!</span>
+      <button class="pup" id="pup" aria-label="모모 쓰다듬기"><span class="bubble" id="bubble">엄마, 오늘도 같이 해요!</span>
         <svg class="poodle live" id="heroPup" viewBox="0 0 120 120" aria-hidden="true"></svg></button>
     </div>
     <div class="bar" aria-hidden="true"><i id="progressBar" style="width:0%"></i></div>
@@ -468,7 +468,7 @@ const parse=s=>{const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
 const addDays=(s,n)=>{const d=parse(s);d.setDate(d.getDate()+n);return fmt(d)};
 const diff=(a,b)=>Math.round((parse(b)-parse(a))/864e5);
 const WD=['일','월','화','수','목','금','토'];
-const TODAY=fmt(new Date());
+let TODAY=fmt(new Date());
 
 function defaults(){return {start:'2026-10-22',test:'2027-01-22',styles:['k','e','f','m','v'],mode:'daily',fs:1,days:{}}}
 let S=defaults();
@@ -504,7 +504,7 @@ function renderScore(){
   const r=ratio(cur),c=Math.round(r*ALL.length);
   $('miniPup').classList.toggle('happy',r>=.7);
   $('ring').style.setProperty('--p',Math.round(r*100));$('ringTxt').textContent=c+'/'+ALL.length;
-  $('scoreMsg').innerHTML=c===0?'체크할수록 달력 칸이 진해져요.':c===ALL.length?'<b>완벽한 하루!</b> 이대로만 가면 돼요.':r>=.7?`<b>잘하고 있어요.</b> ${ALL.length-c}개만 더.`:`<b>${c}개 완료.</b> 하나씩 늘려가요.`;
+  $('scoreMsg').innerHTML=c===0?'하나씩 체크하면 달력에 기록돼요.':c===ALL.length?'<b>완벽한 하루예요!</b> 모모도 신났어요.':r>=.7?`<b>잘하고 계세요.</b> ${ALL.length-c}개만 더 해봐요.`:`<b>${c}개 했어요.</b> 천천히 늘려가요.`;
 }
 function glucoseHint(){
   const f=+$('gFast').value,p=+$('gPost').value,h=$('gHint');
@@ -517,8 +517,8 @@ function glucoseHint(){
 function setField(k,v){const d=Object.assign(day(cur),{[k]:v});S.days[cur]=d;save();renderHero()}
 
 let lastToday=-1,petting=null;
-const moodLine=tr=>TODAY<S.start?'모모랑 내일부터 시작해요!':tr===0?'모모랑 같이 해요!':tr<.6?'모모도 응원해요 멍!':tr<1?'잘하고 있어요 멍!':'완벽해요! 모모 신났어요';
-const PET=['엄마 화이팅 멍!','쓰담쓰담 좋아요','오늘도 산책 가요!','물 한 잔 드세요 멍','간식은 오이 주세요','모모가 지켜볼게요'];
+const moodLine=tr=>TODAY<S.start?'엄마, 곧 시작해요 멍!':tr===0?'엄마, 오늘도 같이 해요!':tr<.6?'좋아요! 하나씩 해봐요':tr<1?'거의 다 왔어요, 엄마!':'오늘 최고예요! 멍멍';
+const PET=['엄마 최고 멍!','쓰담쓰담 좋아요','밥 먹고 같이 걸어요','물 한 잔 드세요 멍','채소부터 드세요!','모모가 옆에 있어요','간식은 오이 주세요'];
 let petI=0;
 function renderHero(){
   const tr=ratio(TODAY),b=$('bubble');
@@ -618,6 +618,12 @@ $('pup').onclick=()=>{const p=$('pup'),b=$('bubble');b.textContent=PET[petI++%PE
   clearTimeout(petting);petting=setTimeout(()=>{petting=null;renderHero()},2600)};
 $('fsSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;S.fs=+b.dataset.z;save();applyFs();toast('글씨 크기를 바꿨어요')});
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+function checkDay(){const t=fmt(new Date());if(t===TODAY)return;
+  const follow=cur===TODAY;TODAY=t;if(follow)cur=TODAY;
+  renderHero();renderDay();renderWeek();if(!$('p-cal').hidden)renderCal()}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkDay()});
+window.addEventListener('pageshow',checkDay);window.addEventListener('focus',checkDay);
+setInterval(checkDay,30000);
 applyFs();
 renderHero();renderDay();renderWeek();renderStyleSet();
 </script>
