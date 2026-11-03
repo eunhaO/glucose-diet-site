@@ -185,6 +185,15 @@ body{word-break:keep-all;overflow-wrap:anywhere}
 input[type=date]{-webkit-appearance:none;appearance:none;display:block;width:100%;min-width:0;max-width:100%;min-height:46px;text-align:left;line-height:1.4}
 input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 input[type=date]::-webkit-calendar-picker-indicator{opacity:.6}
+.memohead{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.mini{display:flex;gap:12px}
+.minichk{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--muted);cursor:pointer}
+.minichk input{appearance:none;-webkit-appearance:none;width:18px;height:18px;margin:0;border:2px solid var(--line);border-radius:5px;
+  background:var(--surface);display:grid;place-items:center;cursor:pointer;transition:all .15s}
+.minichk input::after{content:"";width:5px;height:9px;border:solid var(--surface);border-width:0 2px 2px 0;transform:rotate(45deg) translate(-1px,-1px);opacity:0}
+.minichk input:checked{background:var(--accent);border-color:var(--accent)}
+.minichk input:checked::after{opacity:1}
+.minichk input:checked+span{color:var(--accent);font-weight:600}
 /* 모모 움직임 */
 .live .m-head{transform-box:view-box;transform-origin:60px 86px;animation:tilt 7s ease-in-out infinite}
 .live .m-earL{transform-box:view-box;transform-origin:34px 50px;animation:earL 7s ease-in-out infinite}
@@ -302,7 +311,9 @@ input[type=date]::-webkit-calendar-picker-indicator{opacity:.6}
           <div class="unit"><input id="gPost" type="number" inputmode="numeric" min="30" max="600" placeholder="예: 160"><em>mg/dL</em></div></div>
       </div>
       <p class="hint" id="gHint">측정기를 쓰신다면 적어두세요. 검사 전 추세를 보기 좋아요.</p>
-      <div class="field"><label for="memo">메모</label>
+      <div class="field"><div class="memohead"><label for="memo">메모</label>
+          <span class="mini"><label class="minichk"><input type="checkbox" id="mAm"><span>아침</span></label>
+          <label class="minichk"><input type="checkbox" id="mPm"><span>저녁</span></label></span></div>
         <textarea id="memo" placeholder="먹은 것, 컨디션, 걸은 시간 등"></textarea></div>
     </div>
 
@@ -495,7 +506,7 @@ function renderDay(){
   $('goToday').hidden=cur===TODAY;
   $('nextDay').disabled=cur>=TODAY;$('nextDay').style.opacity=cur>=TODAY?.35:1;
   renderChecks();
-  const d=day(cur);$('gFast').value=d.f||'';$('gPost').value=d.p||'';$('memo').value=d.m||'';
+  const d=day(cur);$('gFast').value=d.f||'';$('gPost').value=d.p||'';$('memo').value=d.m||'';$('mAm').checked=!!d.am;$('mPm').checked=!!d.pm;
   glucoseHint();renderScore();
   $('todayMenu').innerHTML=mealHTML(planFor(cur));
 }
@@ -593,6 +604,8 @@ $('goToday').onclick=()=>{cur=TODAY;renderDay()};
 $('gFast').oninput=e=>{setField('f',e.target.value);glucoseHint()};
 $('gPost').oninput=e=>{setField('p',e.target.value);glucoseHint()};
 $('memo').oninput=e=>setField('m',e.target.value);
+$('mAm').onchange=e=>setField('am',e.target.checked);
+$('mPm').onchange=e=>setField('pm',e.target.checked);
 $('months').addEventListener('click',e=>{const b=e.target.closest('button.cell');if(!b)return;cur=b.dataset.k;renderDay();showTab('today');window.scrollTo({top:0})});
 $('startDate').onchange=e=>{if(e.target.value&&e.target.value<S.test){S.start=e.target.value;save();renderHero();renderDay();toast('시작일을 바꿨어요')}};
 $('testDate').onchange=e=>{if(e.target.value&&e.target.value>S.start){S.test=e.target.value;save();renderHero();toast('검사일을 바꿨어요')}};
